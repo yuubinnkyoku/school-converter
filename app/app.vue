@@ -159,7 +159,8 @@ function convert(inputRaw: string): ConvertResult | null {
   // 全角→半角へ正規化してから大文字化（例: ｔｋｂ１３７ → TKB137）
   const normalizeToAsciiUpper = (s: string) => (s ?? '').normalize('NFKC').trim().toUpperCase()
   const input = normalizeToAsciiUpper(inputRaw)
-  const m = input.match(/^([A-Z]{2,4})(\d{1,3})$/)
+  // 数字桁数の上限を撤廃（1桁以上の任意長）
+  const m = input.match(/^([A-Z]{2,4})(\d+)$/)
   if (!m) return null
 
   const abbr = m[1] as string
