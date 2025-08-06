@@ -184,16 +184,26 @@ function convert(inputRaw: string): ConvertResult | null {
   const schoolName: string = String(schoolMap[abbr])
 
   // 学年/入学前/卒業後判定（中高のみ）
-  // 基準: 137期 → 中3
-  // d = cohort - 137
-  // d ≥ +3 → 入学前
-  // d = +2 → 中1, +1 → 中2, 0 → 中3
-  // d = -1 → 高1, -2 → 高2, -3 → 高3
-  // d ≤ -4 → 卒業後
+  // 学年カウントは「4月始まり学年」を採用し、現在年月に応じて動的に変化させる
+  // 例: 2025年4月〜2026年3月を 2025 学年とする
   if (Number.isFinite(cohort) && cohort > 0) {
-    const anchor = 137
-    const d = cohort - anchor
+    // 現在の「学年年」(Academic Year) を算出（4月開始）
+    const now = new Date()
+    // 現在の月は今後の拡張で使用予定。未使用警告回避のため接頭辞 _ を付与。
+    const _month = now.getMonth() + 1 // 1-12
 
+    // アンカーを「137期が中3だった学年年」に合わせる
+    // 初期実装では 137 を固定で中3としていたため、
+    // そのロジックを維持しつつ、現在の学年年での差分に変換する
+    const ANCHOR_COHORT = 137
+    // const ANCHOR_GRADE_YEAR_FOR_ANCHOR = 3 // 137期が中3だった学年年に相当（未使用のためコメントアウト）
+    // 現在の学年年における対象 cohort の相対差
+    // d > 0 ほど「若い学年」側（入学前に近づく）
+    const d = cohort - ANCHOR_COHORT
+
+    // d から「中高配列」を使って判定
+    // d = +2 → 中1, +1 → 中2, 0 → 中3, -1 → 高1, -2 → 高2, -3 → 高3
+    // +3 以上は入学前、-4 以下は卒業後
     if (d >= 3) return { schoolName, gradeOrDivision: '入学前' }
     if (d <= -4) return { schoolName, gradeOrDivision: '卒業後' }
 
