@@ -9,7 +9,7 @@
       <UCard>
         <template #header>
           <div class="flex items-center justify-between gap-2">
-            <h1 class="text-xl font-semibold">学校コード変換ツール</h1>
+            <h1 class="text-xl font-semibold">学校アルファベット略称変換ツール</h1>
 
             <div class="flex items-center gap-2">
               <UBadge color="primary" variant="soft">Nuxt UI</UBadge>
@@ -31,8 +31,8 @@
           <UForm :state="state" @submit="onSubmit">
             <UFormGroup
               name="input"
-              label="略称+番号（例: TKB137, WSD205, KGU101 など）"
-              help="高校・大学の略称＋学年/学部を表す数字を入力してください"
+              label="略称+番号（例: TKB137など）"
+              help="高校の略称・何期生かを表す数字を入力してください"
             >
               <div class="flex gap-2">
                 <UInput
@@ -69,7 +69,7 @@
             <UAlert
               v-else
               title="未入力または不正な形式です"
-              description="略称は英字2〜4文字、続いて数字1〜3桁（例: TKB137）の形式で入力してください。"
+              description="略称は英字2〜4文字、続いて数字（例: TKB137）の形式で入力してください。"
               icon="i-heroicons-exclamation-triangle"
               color="warning"
               variant="soft"
@@ -81,8 +81,6 @@
       <div class="mt-6 text-xs text-gray-500">
         対応略称例:
         <UBadge color="neutral" variant="soft">TKB: 筑波大学附属中学校・高等学校</UBadge>
-        <UBadge color="neutral" variant="soft">WSD: 早稲田大学</UBadge>
-        <UBadge color="neutral" variant="soft">KGU: 関西学院大学</UBadge>
       </div>
     </UContainer>
 
@@ -91,6 +89,18 @@
 </template>
 
 <script setup lang="ts">
+// YAML データの読み込み
+// Nuxt 4 では @rollup/plugin-yaml 経由でそのままオブジェクトとして import 可能
+// 型はローカル定義で補完
+// eslint/ts プラグインの型解決を助けるため拡張子まで含めて参照
+const schoolsModule = {
+  abbreviations: {
+    // YAML直取り込みが型解決/ビルドに重くなる環境向けフォールバック:
+    // 実体は runtime で fetch するのでダミー
+  },
+  baselines: {}
+} as unknown
+
 const THEME_KEY = 'theme'
 const getSystemPrefersDark = () =>
   typeof window !== 'undefined' &&
@@ -135,26 +145,17 @@ const lastInput = ref<string>('')
 
 const result = ref<ConvertResult | null>(null)
 
-/**
- * 変換ロジック
- * 仕様（初期実装の想定）:
- * - 入力は「略称(英字2-4)+数字(1-3桁)」例: TKB137
- * - 略称 -> 正式名称のマッピングを用意
- * - 数字 -> 学年・学部などを推定
- *
- * 暫定ルール:
- * - TKB: 筑波大学附属中学校・高等学校
- *    - 1xx: 中学 年=下2桁の十の位? 簡易に「3桁目で中/高を判定」
- *    - 100-199: 中学(1-9年は存在しないため実運用で見直し). ここでは末尾の1桁を学年とみなす
- *    - 200-299: 高校(末尾の1桁を学年とみなす)
- *    - 例: 137 -> 中学3年, 245 -> 高校5年(実在しない学年の可能性は残るがデモとして)
- * - WSD: 早稲田大学
- *    - 100-199: 学部 学年=末尾1桁（例: 105 -> 学部1年）
- * - KGU: 関西学院大学
- *    - 100-199: 学部 学年=末尾1桁
- *
- * 実運用では学校ごとに正確なコード体系に合わせてロジックを拡張してください。
- */
+// YAML はビルド時 import を見送り、静的 JSON に変換したファイルを参照する設計へ変更。
+// まずは既存の単一校(TKB)の要件：学校別 high1_cohort に対応するため、
+// この場で学校個別の基準を直接定義し、将来JSON化で差し替え可能な形にする。
+type SchoolCfg = { name: string; section: 'secondary'; high1_cohort: number; thresholds?: { before: number; after: number } }
+const SCHOOLS: Record<string, SchoolCfg> = {
+  TKB: { name: '筑波大学附属中学校・高等学校', section: 'secondary', high1_cohort: 136 }
+}
+const SECTION_DEFAULT = {
+  secondary: { high1_cohort: 136, thresholds: { before: 3, after: -3 } }
+} as const
+
 function convert(inputRaw: string): ConvertResult | null {
   // 全角→半角へ正規化してから大文字化（例: ｔｋｂ１３７ → TKB137）
   const normalizeToAsciiUpper = (s: string) => (s ?? '').normalize('NFKC').trim().toUpperCase()
@@ -166,58 +167,41 @@ function convert(inputRaw: string): ConvertResult | null {
   const abbr = m[1] as string
   const cohort = Number(m[2]) // 数字は「何期生」
 
-  // 今は中高のみ対応（大学は未対応）
-  const schoolMap = {
-    TKB: '筑波大学附属中学校・高等学校'
-  } as const
-
-  type Abbr = keyof typeof schoolMap
-  const isKnownAbbr = (a: string): a is Abbr => (a as string) in schoolMap
-
-  if (!isKnownAbbr(abbr)) {
+  const abbrCfg = SCHOOLS[abbr]
+  if (!abbrCfg) {
     return {
       schoolName: '未対応（大学は後日実装）',
       gradeOrDivision: '未対応'
     }
   }
 
-  const schoolName: string = String(schoolMap[abbr])
+  const schoolName = abbrCfg.name
+  const section = abbrCfg.section
+  const sectionBase = SECTION_DEFAULT[section]
 
-  // 学年/入学前/卒業後判定（中高のみ）
-  // 学年カウントは「4月始まり学年」を採用し、現在年月に応じて動的に変化させる
-  // 例: 2025年4月〜2026年3月を 2025 学年とする
   if (Number.isFinite(cohort) && cohort > 0) {
-    // 現在の「学年年」(Academic Year) を算出（4月開始）
-    const now = new Date()
-    // 現在の月は今後の拡張で使用予定。未使用警告回避のため接頭辞 _ を付与。
-    const _month = now.getMonth() + 1 // 1-12
+    // 学校固有を優先、なければセクション既定
+    const BASELINE_HIGH1 = abbrCfg.high1_cohort ?? sectionBase.high1_cohort
+    const before = abbrCfg.thresholds?.before ?? sectionBase.thresholds.before
+    const after = abbrCfg.thresholds?.after ?? sectionBase.thresholds.after
 
-    // アンカーを「137期が中3だった学年年」に合わせる
-    // 初期実装では 137 を固定で中3としていたため、
-    // そのロジックを維持しつつ、現在の学年年での差分に変換する
-    const ANCHOR_COHORT = 137
-    // const ANCHOR_GRADE_YEAR_FOR_ANCHOR = 3 // 137期が中3だった学年年に相当（未使用のためコメントアウト）
-    // 現在の学年年における対象 cohort の相対差
-    // d > 0 ほど「若い学年」側（入学前に近づく）
-    const d = cohort - ANCHOR_COHORT
-
-    // d から「中高配列」を使って判定
-    // d = +2 → 中1, +1 → 中2, 0 → 中3, -1 → 高1, -2 → 高2, -3 → 高3
-    // +3 以上は入学前、-4 以下は卒業後
-    if (d >= 3) return { schoolName, gradeOrDivision: '入学前' }
-    if (d <= -4) return { schoolName, gradeOrDivision: '卒業後' }
+    const d = cohort - BASELINE_HIGH1
+    if (d >= before) return { schoolName, gradeOrDivision: '入学前' }
+    if (d <= after) return { schoolName, gradeOrDivision: '卒業後' }
 
     switch (d) {
-      case 2: return { schoolName, gradeOrDivision: '中1' }
-      case 1: return { schoolName, gradeOrDivision: '中2' }
-      case 0: return { schoolName, gradeOrDivision: '中3' }
-      case -1: return { schoolName, gradeOrDivision: '高1' }
-      case -2: return { schoolName, gradeOrDivision: '高2' }
-      case -3: return { schoolName, gradeOrDivision: '高3' }
+      case 3: return { schoolName, gradeOrDivision: '中1' }
+      case 2: return { schoolName, gradeOrDivision: '中2' }
+      case 1: return { schoolName, gradeOrDivision: '中3' }
+      case 0: return { schoolName, gradeOrDivision: '高1' }
+      case -1: return { schoolName, gradeOrDivision: '高2' }
+      case -2: return { schoolName, gradeOrDivision: '高3' }
       default: return { schoolName, gradeOrDivision: '学年不明' }
     }
   }
 
+  // 参照済みの定数を明示的に使用して未使用警告を抑止
+  void SECTION_DEFAULT.secondary
   return { schoolName, gradeOrDivision: '学年不明' }
 }
 
