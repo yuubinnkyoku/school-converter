@@ -37,12 +37,12 @@
               <div class="flex items-center gap-2">
                 <UIcon name="i-heroicons-building-library" class="text-primary" />
                 <span class="font-medium">学校名:</span>
-                <span>{{ result.schoolName }}</span>
+                <span>{{ result?.schoolName }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <UIcon name="i-heroicons-user" class="text-primary" />
                 <span class="font-medium">区分:</span>
-                <span>{{ result.gradeOrDivision }}</span>
+                <span>{{ result?.gradeOrDivision }}</span>
               </div>
               <div class="text-xs text-gray-500">
                 入力: <code>{{ lastInput }}</code>
@@ -115,46 +115,51 @@ function convert(inputRaw: string): ConvertResult | null {
   if (!m) return null
 
   const abbr = m[1] as string
-  const num = Number(m[2])
+  const cohort = Number(m[2]) // 数字は「何期生」
 
+  // 今は中高のみ対応（大学は未対応）
   const schoolMap = {
-    TKB: '筑波大学附属中学校・高等学校',
-    WSD: '早稲田大学',
-    KGU: '関西学院大学'
+    TKB: '筑波大学附属中学校・高等学校'
   } as const
 
   type Abbr = keyof typeof schoolMap
   const isKnownAbbr = (a: string): a is Abbr => (a as string) in schoolMap
 
-  if (!isKnownAbbr(abbr)) return null
-  const schoolName: (typeof schoolMap)[Abbr] = schoolMap[abbr]
-
-  // 校別ルーティング
-  if (abbr === 'TKB') {
-    // 100-199: 中学, 200-299: 高校 とする暫定ルール
-    if (num >= 100 && num < 200) {
-      const g = num % 10 || 1
-      return { schoolName: String(schoolName), gradeOrDivision: `中学${g}年生` }
+  if (!isKnownAbbr(abbr)) {
+    return {
+      schoolName: '未対応（大学は後日実装）',
+      gradeOrDivision: '未対応'
     }
-    if (num >= 200 && num < 300) {
-      const g = num % 10 || 1
-      return { schoolName: String(schoolName), gradeOrDivision: `高校${g}年生` }
-    }
-    // 2桁やその他は暫定で中学の学年に丸める
-    if (num < 100) {
-      const g = Math.max(1, Math.min(3, num % 10 || 1))
-      return { schoolName: String(schoolName), gradeOrDivision: `中学${g}年生` }
-    }
-    return { schoolName: String(schoolName), gradeOrDivision: '学年不明' }
   }
 
-  if (abbr === 'WSD' || abbr === 'KGU') {
-    // 大学 学部 学年=末尾1桁（暫定）
-    const g = num % 10 || 1
-    return { schoolName: String(schoolName), gradeOrDivision: `学部${g}年生` }
+  const schoolName: string = String(schoolMap[abbr])
+
+  // 学年/入学前/卒業後判定（中高のみ）
+  // 基準: 137期 → 中3
+  // d = cohort - 137
+  // d ≥ +3 → 入学前
+  // d = +2 → 中1, +1 → 中2, 0 → 中3
+  // d = -1 → 高1, -2 → 高2, -3 → 高3
+  // d ≤ -4 → 卒業後
+  if (Number.isFinite(cohort) && cohort > 0) {
+    const anchor = 137
+    const d = cohort - anchor
+
+    if (d >= 3) return { schoolName, gradeOrDivision: '入学前' }
+    if (d <= -4) return { schoolName, gradeOrDivision: '卒業後' }
+
+    switch (d) {
+      case 2: return { schoolName, gradeOrDivision: '中1' }
+      case 1: return { schoolName, gradeOrDivision: '中2' }
+      case 0: return { schoolName, gradeOrDivision: '中3' }
+      case -1: return { schoolName, gradeOrDivision: '高1' }
+      case -2: return { schoolName, gradeOrDivision: '高2' }
+      case -3: return { schoolName, gradeOrDivision: '高3' }
+      default: return { schoolName, gradeOrDivision: '学年不明' }
+    }
   }
 
-  return null
+  return { schoolName, gradeOrDivision: '学年不明' }
 }
 
 function onSubmit() {
