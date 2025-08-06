@@ -1,11 +1,29 @@
 <template>
+  <!-- 初期テーマ適用（FOUC回避） -->
+  <Head>
+    <Script tag="script" children="(function(){try{var k='theme';var s=localStorage.getItem(k);if(!s){s=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.dataset.theme=s;document.documentElement.classList.toggle('dark',s==='dark')}catch(e){}})()"/>
+  </Head>
+
   <UApp>
     <UContainer class="py-10">
       <UCard>
         <template #header>
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between gap-2">
             <h1 class="text-xl font-semibold">学校コード変換ツール</h1>
-            <UBadge color="primary" variant="soft">Nuxt UI</UBadge>
+
+            <div class="flex items-center gap-2">
+              <UBadge color="primary" variant="soft">Nuxt UI</UBadge>
+
+              <!-- テーマトグル -->
+              <UTooltip text="テーマ切替">
+                <UButton
+                  variant="soft"
+                  :icon="isDark ? 'i-heroicons-moon-20-solid' : 'i-heroicons-sun-20-solid'"
+                  @click="toggleTheme"
+                  :aria-label="isDark ? 'ダークに設定済み' : 'ライトに設定済み'"
+                />
+              </UTooltip>
+            </div>
           </div>
         </template>
 
@@ -73,6 +91,34 @@
 </template>
 
 <script setup lang="ts">
+const THEME_KEY = 'theme'
+const getSystemPrefersDark = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia &&
+  window.matchMedia('(prefers-color-scheme: dark)').matches
+
+const isDark = ref<boolean>(false)
+
+onMounted(() => {
+  // CSR 初期化（SSR では Head スクリプトで適用済み）
+  const saved = localStorage.getItem(THEME_KEY)
+  const current = saved ?? (getSystemPrefersDark() ? 'dark' : 'light')
+  isDark.value = current === 'dark'
+  document.documentElement.dataset.theme = current
+  document.documentElement.classList.toggle('dark', isDark.value)
+})
+
+function applyTheme(mode: 'light' | 'dark') {
+  document.documentElement.dataset.theme = mode
+  document.documentElement.classList.toggle('dark', mode === 'dark')
+  localStorage.setItem(THEME_KEY, mode)
+  isDark.value = mode === 'dark'
+}
+
+function toggleTheme() {
+  applyTheme(isDark.value ? 'light' : 'dark')
+}
+
 // 入力状態
 const state = reactive({
   input: ''
@@ -110,7 +156,9 @@ const result = ref<ConvertResult | null>(null)
  * 実運用では学校ごとに正確なコード体系に合わせてロジックを拡張してください。
  */
 function convert(inputRaw: string): ConvertResult | null {
-  const input = (inputRaw ?? '').trim().toUpperCase()
+  // 全角→半角へ正規化してから大文字化（例: ｔｋｂ１３７ → TKB137）
+  const normalizeToAsciiUpper = (s: string) => (s ?? '').normalize('NFKC').trim().toUpperCase()
+  const input = normalizeToAsciiUpper(inputRaw)
   const m = input.match(/^([A-Z]{2,4})(\d{1,3})$/)
   if (!m) return null
 

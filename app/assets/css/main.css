@@ -1,2 +1,71 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+
+/* 基本のカラートークン（ライト基準） */
+:root {
+  --bg: 255 255 255;            /* #ffffff */
+  --fg: 17 24 39;               /* gray-900 */
+  --muted: 107 114 128;         /* gray-500 */
+  --card: 249 250 251;          /* gray-50 */
+  --border: 229 231 235;        /* gray-200 */
+
+  /* アクセントは Nuxt UI/Tailwind と大きく乖離しない色域に */
+  --primary: 59 130 246;        /* blue-500 */
+  --primary-contrast: 255 255 255;
+}
+
+/* ダークテーマ上書き */
+:root.dark,
+:root[data-theme="dark"] {
+  --bg: 17 24 39;               /* gray-900 */
+  --fg: 243 244 246;            /* gray-100 */
+  --muted: 156 163 175;         /* gray-400 */
+  --card: 31 41 55;             /* gray-800 */
+  --border: 55 65 81;           /* gray-700 */
+  --primary: 96 165 250;        /* blue-400 */
+  --primary-contrast: 0 0 0;
+}
+
+/* OS設定に追従（ユーザー選択が無い場合の初期値として有効） */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: 17 24 39;
+    --fg: 243 244 246;
+    --muted: 156 163 175;
+    --card: 31 41 55;
+    --border: 55 65 81;
+    --primary: 96 165 250;
+    --primary-contrast: 0 0 0;
+  }
+}
+
+/* ベース適用（Tailwind と併用、x y z を rgb(var(--token)) で使えるように） */
+html, body, #__nuxt {
+  height: 100%;
+}
+
+body {
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+}
+
+/* カード/ボーダーなどの下地（Nuxt UIの色とも調和） */
+.card-surface {
+  background-color: rgb(var(--card));
+  border: 1px solid rgb(var(--border));
+}
+
+/* プライマリ */
+a, .link-primary {
+  color: rgb(var(--primary));
+}
+
+/* Nuxt UI の UCard をわずかにベース色へ寄せる（任意） */
+:where(.u-card, .u-card-body) {
+  background-color: rgb(var(--card));
+}
+
+/* Nuxt UI の primary トーンの微調整（任意） */
+:where(.text-primary) {
+  color: rgb(var(--primary)) !important;
+}
