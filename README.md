@@ -1,27 +1,27 @@
 # School Converter
 
-School Converter is a web application for managing and converting school data. It is built with Nuxt.
+School Converterは、学校のデータを管理および変換するためのウェブアプリケーションです。Nuxtで構築されています。
 
-## Features
+## 機能
 
--   **School Data Management**: Manage a list of schools and their associated data.
--   **Data Conversion**: Convert school data based on defined thresholds.
--   **Extensible**: Easily add new school types and schools through a YAML configuration file.
+-   **学校データ管理**: 学校のリストとそれに関連するデータを管理します。
+-   **データ変換**: 定義されたしきい値に基づいて学校のデータを変換します。
+-   **拡張可能**: YAML設定ファイルを介して新しい学校の種類や学校を簡単に追加できます。
 
-## Usage
+## 使い方
 
-1.  Clone the repository.
-2.  Install the dependencies: `npm install`
-3.  Start the development server: `npm run dev`
-4.  Open your browser to `http://localhost:3000` to view the application.
+1.  リポジトリをクローンします。
+2.  依存関係をインストールします: `npm install`
+3.  開発サーバーを起動します: `npm run dev`
+4.  ブラウザで `http://localhost:3000` を開いてアプリケーションを表示します。
 
-## Data Source
+## データソース
 
-The school data is managed in the `app/data/schools.yaml` file. This file contains the different school types, their thresholds, and a list of schools with their abbreviations and cohort sizes.
+学校のデータは `app/data/schools.yaml` ファイルで管理されます。このファイルには、さまざまな学校の種類、そのしきい値、および各学校の略称とコホートサイズのリストが含まれています。
 
-## Setup
+## セットアップ
 
-Make sure to install dependencies:
+依存関係を必ずインストールしてください:
 
 ```bash
 # npm
@@ -37,9 +37,9 @@ yarn install
 bun install
 ```
 
-## Development Server
+## 開発サーバー
 
-Start the development server on `http://localhost:3000`:
+`http://localhost:3000` で開発サーバーを起動します:
 
 ```bash
 # npm
@@ -52,12 +52,11 @@ pnpm dev
 yarn dev
 
 # bun
-bun run dev
-```
+bun run dev```
 
-## Production
+## 本番環境
 
-Build the application for production:
+本番用にアプリケーションをビルドします:
 
 ```bash
 # npm
@@ -73,7 +72,7 @@ yarn build
 bun run build
 ```
 
-Locally preview production build:
+ローカルで本番ビルドをプレビューします:
 
 ```bash
 # npm
@@ -89,12 +88,12 @@ yarn preview
 bun run preview
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+詳細については、[デプロイに関するドキュメンテーション](https://nuxt.com/docs/getting-started/deployment) を確認してください。
 
-## Contributing
+## 貢献
 
-Contributions are welcome! Please feel free to submit a pull request or open an issue.
+貢献を歓迎します！プルリクエストを送信するか、イシューをオープンにしてください。
 
-## License
+## ライセンス
 
-This project is licensed under the MIT License.
+このプロジェクトはMITライセンスの下でライセンスされています。
