@@ -12,3 +12,11 @@ school_types:
     thresholds:
       before: -1
       after: -3
+
+  大学:
+    thresholds:
+      before: -1 # d <= -1
+      after: 4   # d >= 4
+    schools:
+      "学習院大学":
+        abbr: "GAKU"

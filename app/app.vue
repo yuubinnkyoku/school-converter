@@ -31,13 +31,13 @@
           <UForm :state="state" @submit="onSubmit">
             <UFormGroup
               name="input"
-              label="略称+番号（例: TKB137など）"
-              help="高校の略称・何期生かを表す数字を入力してください"
+              label="略称+番号（例: TKB137, GAKU2021）"
+              help="学校略称と期や入学年度を入力してください"
             >
               <div class="flex gap-2">
                 <UInput
                   v-model="state.input"
-                  placeholder="例: TKB137"
+                  placeholder="例: TKB137, GAKU2021"
                   icon="i-heroicons-academic-cap"
                   autofocus
                   @keyup.enter="onSubmit()"
@@ -69,7 +69,7 @@
             <UAlert
               v-else
               title="未入力または不正な形式です"
-              description="略称は英字2〜4文字、続いて数字（例: TKB137）の形式で入力してください。"
+              description="略称は英字2〜4文字、続いて数字（例: TKB137, GAKU2021）の形式で入力してください。"
               icon="i-heroicons-exclamation-triangle"
               color="warning"
               variant="soft"
@@ -78,9 +78,10 @@
         </div>
       </UCard>
 
-      <div class="mt-6 text-xs text-gray-500">
-        対応略称例:
+      <div class="mt-6 text-xs text-gray-500 space-x-1">
+        <span>対応略称例:</span>
         <UBadge color="neutral" variant="soft">TKB: 筑波大学附属中学校・高等学校</UBadge>
+        <UBadge color="neutral" variant="soft">GAKU: 学習院大学</UBadge>
       </div>
     </UContainer>
 
@@ -143,14 +144,16 @@ const lastInput = ref<string>('')
 const result = ref<ConvertResult | null>(null)
 
 function findSchoolByAbbr(abbr: string) {
-  for (const schoolType in school_types) {
-    const { schools } = school_types[schoolType]
+  for (const schoolTypeName in school_types) {
+    const schoolType = school_types[schoolTypeName]
+    const { schools } = schoolType
     for (const schoolName in schools) {
       if (schools[schoolName].abbr === abbr) {
         return {
           schoolName,
           ...schools[schoolName],
-          ...school_types[schoolType]
+          ...schoolType,
+          school_type: schoolTypeName
         }
       }
     }
@@ -167,33 +170,45 @@ function convert(inputRaw: string): ConvertResult | null {
   if (!m) return null
 
   const abbr = m[1] as string
-  const cohort = Number(m[2]) // 数字は「何期生」
+  const num = Number(m[2])
 
   const schoolInfo = findSchoolByAbbr(abbr)
 
   if (!schoolInfo) {
     return {
-      schoolName: '未対応（大学は後日実装）',
+      schoolName: '未対応の学校です',
       gradeOrDivision: '未対応'
     }
   }
 
-  const { schoolName, high1_cohort, thresholds } = schoolInfo
+  const { schoolName, high1_cohort, thresholds, school_type } = schoolInfo
   const { before, after } = thresholds
 
-  if (Number.isFinite(cohort) && cohort > 0) {
-    const d = cohort - high1_cohort
-    if (d >= before) return { schoolName, gradeOrDivision: '入学前' }
-    if (d <= after) return { schoolName, gradeOrDivision: '卒業後' }
+  if (school_type === '大学') {
+    const admissionYear = num
+    if (Number.isFinite(admissionYear) && admissionYear > 1900) {
+      const currentYear = new Date().getFullYear()
+      const d = currentYear - admissionYear
+      if (d <= before) return { schoolName, gradeOrDivision: '入学前' }
+      if (d >= after) return { schoolName, gradeOrDivision: '卒業' }
+      return { schoolName, gradeOrDivision: `学部${d + 1}年` }
+    }
+  } else {
+    const cohort = num
+    if (Number.isFinite(cohort) && cohort > 0) {
+      const d = cohort - high1_cohort
+      if (d >= before) return { schoolName, gradeOrDivision: '入学前' }
+      if (d <= after) return { schoolName, gradeOrDivision: '卒業後' }
 
-    switch (d) {
-      case 3: return { schoolName, gradeOrDivision: '中1' }
-      case 2: return { schoolName, gradeOrDivision: '中2' }
-      case 1: return { schoolName, gradeOrDivision: '中3' }
-      case 0: return { schoolName, gradeOrDivision: '高1' }
-      case -1: return { schoolName, gradeOrDivision: '高2' }
-      case -2: return { schoolName, gradeOrDivision: '高3' }
-      default: return { schoolName, gradeOrDivision: '学年不明' }
+      switch (d) {
+        case 3: return { schoolName, gradeOrDivision: '中1' }
+        case 2: return { schoolName, gradeOrDivision: '中2' }
+        case 1: return { schoolName, gradeOrDivision: '中3' }
+        case 0: return { schoolName, gradeOrDivision: '高1' }
+        case -1: return { schoolName, gradeOrDivision: '高2' }
+        case -2: return { schoolName, gradeOrDivision: '高3' }
+        default: return { schoolName, gradeOrDivision: '学年不明' }
+      }
     }
   }
 
