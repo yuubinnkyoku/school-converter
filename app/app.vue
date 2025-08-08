@@ -89,18 +89,15 @@
 </template>
 
 <script setup lang="ts">
+import schoolsData from '~/data/schools.yaml'
+
+// @ts-ignore
+const { school_types } = schoolsData
+
 // YAML データの読み込み
 // Nuxt 4 では @rollup/plugin-yaml 経由でそのままオブジェクトとして import 可能
 // 型はローカル定義で補完
 // eslint/ts プラグインの型解決を助けるため拡張子まで含めて参照
-const schoolsModule = {
-  abbreviations: {
-    // YAML直取り込みが型解決/ビルドに重くなる環境向けフォールバック:
-    // 実体は runtime で fetch するのでダミー
-  },
-  baselines: {}
-} as unknown
-
 const THEME_KEY = 'theme'
 const getSystemPrefersDark = () =>
   typeof window !== 'undefined' &&
@@ -145,16 +142,21 @@ const lastInput = ref<string>('')
 
 const result = ref<ConvertResult | null>(null)
 
-// YAML はビルド時 import を見送り、静的 JSON に変換したファイルを参照する設計へ変更。
-// まずは既存の単一校(TKB)の要件：学校別 high1_cohort に対応するため、
-// この場で学校個別の基準を直接定義し、将来JSON化で差し替え可能な形にする。
-type SchoolCfg = { name: string; section: 'secondary'; high1_cohort: number; thresholds?: { before: number; after: number } }
-const SCHOOLS: Record<string, SchoolCfg> = {
-  TKB: { name: '筑波大学附属中学校・高等学校', section: 'secondary', high1_cohort: 136 }
+function findSchoolByAbbr(abbr: string) {
+  for (const schoolType in school_types) {
+    const { schools } = school_types[schoolType]
+    for (const schoolName in schools) {
+      if (schools[schoolName].abbr === abbr) {
+        return {
+          schoolName,
+          ...schools[schoolName],
+          ...school_types[schoolType]
+        }
+      }
+    }
+  }
+  return null
 }
-const SECTION_DEFAULT = {
-  secondary: { high1_cohort: 136, thresholds: { before: 3, after: -3 } }
-} as const
 
 function convert(inputRaw: string): ConvertResult | null {
   // 全角→半角へ正規化してから大文字化（例: ｔｋｂ１３７ → TKB137）
@@ -167,25 +169,20 @@ function convert(inputRaw: string): ConvertResult | null {
   const abbr = m[1] as string
   const cohort = Number(m[2]) // 数字は「何期生」
 
-  const abbrCfg = SCHOOLS[abbr]
-  if (!abbrCfg) {
+  const schoolInfo = findSchoolByAbbr(abbr)
+
+  if (!schoolInfo) {
     return {
       schoolName: '未対応（大学は後日実装）',
       gradeOrDivision: '未対応'
     }
   }
 
-  const schoolName = abbrCfg.name
-  const section = abbrCfg.section
-  const sectionBase = SECTION_DEFAULT[section]
+  const { schoolName, high1_cohort, thresholds } = schoolInfo
+  const { before, after } = thresholds
 
   if (Number.isFinite(cohort) && cohort > 0) {
-    // 学校固有を優先、なければセクション既定
-    const BASELINE_HIGH1 = abbrCfg.high1_cohort ?? sectionBase.high1_cohort
-    const before = abbrCfg.thresholds?.before ?? sectionBase.thresholds.before
-    const after = abbrCfg.thresholds?.after ?? sectionBase.thresholds.after
-
-    const d = cohort - BASELINE_HIGH1
+    const d = cohort - high1_cohort
     if (d >= before) return { schoolName, gradeOrDivision: '入学前' }
     if (d <= after) return { schoolName, gradeOrDivision: '卒業後' }
 
@@ -200,8 +197,6 @@ function convert(inputRaw: string): ConvertResult | null {
     }
   }
 
-  // 参照済みの定数を明示的に使用して未使用警告を抑止
-  void SECTION_DEFAULT.secondary
   return { schoolName, gradeOrDivision: '学年不明' }
 }
 
