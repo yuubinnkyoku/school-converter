@@ -19,6 +19,11 @@ abbreviations:
     #   before: 3  # d >= 3 → 入学前
     #   after: -3  # d <= -3 → 卒業後
 
+  # 学習院大学
+  GAKU:
+    name: "学習院大学"
+    section: "university"
+
 # セクション別のデフォルト基準（高1 = baseline）
 baselines:
   secondary:
@@ -30,3 +35,11 @@ baselines:
       # d <= -3 → 卒業後
       before: 3
       after: -3
+  university:
+    # d = current_year - admission_year
+    # d < 0 → 入学前
+    # 0 <= d <= 3 → 学部1〜4年
+    # d > 3 → 卒業
+    thresholds:
+      before: -1 # d <= -1
+      after: 4   # d >= 4
