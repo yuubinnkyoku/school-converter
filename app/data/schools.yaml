@@ -1,9 +1,14 @@
 school_types:
-  secondary:
+  中高一貫校:
+    thresholds:
+      before: 3
+      after: -3
     schools:
       "筑波大学附属中学校・高等学校":
         abbr: "TKB"
         high1_cohort: 136
+
+  高校:
     thresholds:
-      before: 3
+      before: -1
       after: -3
