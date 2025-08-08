@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@modyfi/vite-plugin-yaml": "^1.1.0",
-    "@nuxt/eslint": "^1.7.1",
+    "@nuxt/eslint": "^1.8.0",
     "@nuxt/ui": "^3.3.0",
     "eslint": "^9.32.0",
     "nuxt": "^4.0.3",
