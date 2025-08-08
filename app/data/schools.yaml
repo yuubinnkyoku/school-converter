@@ -1,32 +1,9 @@
-# 学校データ定義（略称・正式名・セクションと基準期）
-# - abbreviations: 略称ごとの定義（正式名・セクション・学校固有の高1基準期）
-# - baselines: セクションのデフォルト基準と閾値（学校固有値がなければ利用）
-#
-# 例:
-#   入力 TKB137 → 略称 TKB → 学校固有 high1_cohort=136 と比較
-#   137 - 136 = 1 → 中3
-#   136 → 高1, 135 → 高2, 134 → 高3
-#   139 以上は入学前, 133 以下は卒業後（thresholdsにより決定）
-
-abbreviations:
-  # 筑波大学附属中学校・高等学校
-  TKB:
-    name: "筑波大学附属中学校・高等学校"
-    section: "secondary" # 中高
-    high1_cohort: 136    # この学校では「高1=136期」
-    # 学校ごとに閾値を変えたい場合は以下を上書き可能（未指定ならセクションの値）
-    # thresholds:
-    #   before: 3  # d >= 3 → 入学前
-    #   after: -3  # d <= -3 → 卒業後
-
-# セクション別のデフォルト基準（高1 = baseline）
-baselines:
+school_types:
   secondary:
-    high1_cohort: 136
-    # 判定レンジ（必要なら将来拡張）
+    schools:
+      "筑波大学附属中学校・高等学校":
+        abbr: "TKB"
+        high1_cohort: 136
     thresholds:
-      # d = cohort - high1_cohort
-      # d >= 3 → 入学前
-      # d <= -3 → 卒業後
       before: 3
       after: -3
