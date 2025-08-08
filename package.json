@@ -10,6 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@modyfi/vite-plugin-yaml": "^1.1.0",
     "@nuxt/eslint": "^1.7.1",
     "@nuxt/ui": "^3.3.0",
     "eslint": "^9.32.0",
